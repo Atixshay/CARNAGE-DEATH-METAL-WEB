@@ -23,6 +23,10 @@ The same page plays on a phone: there is no separate build and no second URL.
   prompt covers the game until it is turned; rotating back hides it again.
 - **No camera on phones.** Webcam hand tracking and the MediaPipe download are desktop only,
   so a phone never asks for camera permission. Desktops keep the full gesture controls.
+- **The play area fills the phone screen.** The frame keeps its 16:9 shape and is scaled up
+  until its width fills the screen (it is never stretched); the spare sky and the ground edge
+  fall off the top and bottom, and the HUD slides into whatever stays visible. A tablet, or a
+  phone held upright, keeps the plain letterboxed frame.
 - On-screen controls appear when a fight starts (the menu cards stay clear):
   - **Joystick** bottom left: drag left / right to walk, the ring is the thumb pad.
   - **DASH** round button: the same burst dash as `SHIFT`.

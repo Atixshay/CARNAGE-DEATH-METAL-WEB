@@ -15,6 +15,28 @@ function T(s,x,y,size,col,al='center',bl='middle',mw){
 function neon(s,x,y,size,col,blur=16,al='center',bl='middle',mw){
  X.save();X.shadowColor=hexA(col.startsWith('#')?col:'#dfa63c',.55);X.shadowBlur=blur;
  T(s,x,y,size,col,al,bl,mw);X.restore()}
+// ---- phones: the frame is scaled up until its width fills the phone screen, then slid up so the
+// ground stays in view. A phone wider than 16:9 is shorter than the frame, so the leftover is cut
+// from the ground edge first and only then from the sky - that keeps the fighters away from the HUD.
+// VIEW records the slice that is still on screen so the HUD, cards and frame stay inside it.
+const VIEW={top:0,bottom:0,h:C.H};
+function measureView(){
+ if(!MOBILE){VIEW.top=0;VIEW.bottom=0;VIEW.h=C.H;return}
+ const iw=innerWidth||0,ih=innerHeight||0;if(!iw||!ih)return;
+ if(iw/ih<=C.W/C.H){                              // tablet or upright: the plain 16:9 box fits
+  VIEW.top=0;VIEW.bottom=0;VIEW.h=C.H;
+  cv.style.cssText='';return}
+ const s=iw/C.W;                                  // css px per world px, width fills the screen
+ const crop=Math.min(C.H-1,Math.max(0,Math.round(C.H-ih/s)));
+ VIEW.bottom=Math.min(96,crop);VIEW.top=crop-VIEW.bottom;VIEW.h=C.H-VIEW.top-VIEW.bottom;
+ cv.style.position='fixed';cv.style.transform='none';cv.style.margin='0';
+ cv.style.left='0px';cv.style.top=(-VIEW.top*s)+'px';
+ cv.style.width=iw+'px';cv.style.height=(C.H*s)+'px';
+ cv.style.borderRadius='0';cv.style.boxShadow='none'}
+if(MOBILE&&typeof addEventListener==='function'){
+ addEventListener('resize',measureView);
+ addEventListener('orientationchange',()=>setTimeout(measureView,120))}
+measureView();
 function panel(x,y,w,h,lw,col=C.INK){X.strokeStyle=col;X.lineWidth=lw;X.beginPath();X.roundRect(x+lw/2,y+lw/2,w-lw,h-lw,10);X.stroke()}
 function starburst(cx,cy,r,col,pts=12){                       // soft ink splash behind titles
  X.beginPath();for(let i=0;i<pts*2;i++){const rad=i%2?r*.6:r,a=i/(pts*2)*Math.PI*2;
@@ -538,32 +560,32 @@ function warmScene(){
    cx,by+28,17,'#c9c1a6','center','middle',w+320);
  T('SPACE BEGIN   ·   F2 CAMERA / KEYBOARD   ·   X SWAP HANDS   ·   ESC MENU',
    cx,by+56,14,'rgba(244,237,218,.5)','center','middle',w+460)}
-function hud(fps){
- const W=C.W,p=G.p,e=G.e,cx=W/2;
- bar(40,54,430,34,p.hp/C.PHP,C.GREEN,'YOU  '+Math.ceil(p.hp));
+ function hud(fps){
+ const W=C.W,p=G.p,e=G.e,cx=W/2,t=VIEW.top;   // t: phones crop the top of the frame, so the HUD rides down with it
+ bar(40,54+t,430,34,p.hp/C.PHP,C.GREEN,'YOU  '+Math.ceil(p.hp));
  let px=40;
  if(p.guard>0)for(let i=0;i<p.guard;i++){
-  X.fillStyle=C.BLUE;X.beginPath();X.arc(px+8+i*22,112,6,0,7);X.fill();
+  X.fillStyle=C.BLUE;X.beginPath();X.arc(px+8+i*22,112+t,6,0,7);X.fill();
   X.strokeStyle=C.INK;X.lineWidth=2;X.stroke()}
  px+=p.guard?p.guard*22+14:0;
  for(const k in p.powers){const pw=POWERS[k];
-  X.fillStyle='rgba(18,22,14,.85)';X.beginPath();X.roundRect(px,99,74,25,6);X.fill();
+  X.fillStyle='rgba(18,22,14,.85)';X.beginPath();X.roundRect(px,99+t,74,25,6);X.fill();
   X.strokeStyle=pw.col;X.lineWidth=2;X.stroke();
-  T(pw.tag+' '+Math.ceil(p.powers[k]),px+37,112,16,pw.col);px+=82}
- bar(W-470,54,430,34,e.hp/e.max,C.RED,e.def.name+'  '+Math.ceil(e.hp),true);
- T('WEAK: '+e.def.weak,W-40,96,21,C.YEL,'right','top');
+  T(pw.tag+' '+Math.ceil(p.powers[k]),px+37,112+t,16,pw.col);px+=82}
+ bar(W-470,54+t,430,34,e.hp/e.max,C.RED,e.def.name+'  '+Math.ceil(e.hp),true);
+ T('WEAK: '+e.def.weak,W-40,96+t,21,C.YEL,'right','top');
  const lvl=G.endless?'WAVE '+(G.level-ENEMIES.length+1):'LEVEL '+(G.level+1)+' / '+ENEMIES.length;
- T(lvl,cx,26,23,C.PURPLE);
+ T(lvl,cx,26+t,23,C.PURPLE);
  const chord=src==='webcam'?rec.stable:kbChord,lab=chord!=='NONE'?chord:'--';
- T(lab,cx+2,95,86,C.INK);X.save();T(lab,cx,92,86,CHORD_COL[chord]||'#8d8873');X.restore();
- if(G.streak>=2)T(G.streak+' HIT STREAK!',cx,172,30+Math.min(20,G.streak*2),C.YEL);
- const trail=p.buf.slice(-4).map(x=>x[0]).join(' > ');if(trail)T(trail,cx,204,20,C.PAPER);
+ T(lab,cx+2,95+t,86,C.INK);X.save();T(lab,cx,92+t,86,CHORD_COL[chord]||'#8d8873');X.restore();
+ if(G.streak>=2)T(G.streak+' HIT STREAK!',cx,172+t,30+Math.min(20,G.streak*2),C.YEL);
+ const trail=p.buf.slice(-4).map(x=>x[0]).join(' > ');if(trail)T(trail,cx,204+t,20,C.PAPER);
  if(G.super>=1&&!G.superOn){
   X.save();X.globalAlpha=.5+.2*Math.sin((G.elapsed||0)*8);X.fillStyle='rgba(12,16,10,.86)';
-  X.beginPath();X.roundRect(cx-236,232,472,74,16);X.fill();X.restore();
+  X.beginPath();X.roundRect(cx-236,232+t,472,74,16);X.fill();X.restore();
   X.save();X.globalAlpha=.7+.3*Math.sin((G.elapsed||0)*8);
-  T('SUPER READY',cx,254,30,C.RED);
-  T(MOBILE?'TAP THE SUPER BUTTON':'PRESS Q   ·   OR CLENCH BOTH FISTS',cx,286,16,C.PAPER);X.restore()}
+  T('SUPER READY',cx,254+t,30,C.RED);
+  T(MOBILE?'TAP THE SUPER BUTTON':'PRESS Q   ·   OR CLENCH BOTH FISTS',cx,286+t,16,C.PAPER);X.restore()}
  // super meter: fills with hits, shouts when it is ready
  const sy=C.H-186,full=G.super>=1;
  T('SUPER',40,sy,17,full?C.RED:'#a8a48e','left','middle');
@@ -574,8 +596,8 @@ function hud(fps){
   T(MOBILE?'READY  ·  SUPER':'READY  ·  Q',360,sy,19,C.RED,'left','middle');X.restore()}
  else T(Math.round(G.super*100)+'%',360,sy,15,'#8f8b76','left','middle');
  // the bottom-left corner belongs to the joystick on a phone, so the score moves up
- T('SCORE '+G.score,40,MOBILE?150:C.H-134,MOBILE?26:29,C.PAPER,'left','top');
- T('DODGES '+G.dodges,40,MOBILE?178:C.H-104,MOBILE?17:19,C.BLUE,'left','top');
+ T('SCORE '+G.score,40,MOBILE?150+t:C.H-134,MOBILE?26:29,C.PAPER,'left','top');
+ T('DODGES '+G.dodges,40,MOBILE?178+t:C.H-104,MOBILE?17:19,C.BLUE,'left','top');
  if(!MOBILE){                                 // on a phone the bottom corners are controls
   T(`${fps.toFixed(1)} FPS   input: ${src}   A/D move   SHIFT dash   ${p.dashCD>0?'dash '+p.dashCD.toFixed(1)+'s':'dash ready'}`,
     28,C.H-74,16,'#b6b3a0','left','top',620);
@@ -641,7 +663,7 @@ function drawSuper(){
  X.fillStyle='#080b08';X.fillRect(0,0,C.W,bar);X.fillRect(0,C.H-bar,C.W,bar);
  X.restore()}
 function card(){
- const cx=C.W/2,cy=C.H/2,ph=G.phase;let title,sub,col,lines;
+ const cx=C.W/2,cy=MOBILE?VIEW.top+VIEW.h/2:C.H/2,ph=G.phase;let title,sub,col,lines;
  if(ph==='MENU'){
   title=C.TITLE;sub=MOBILE?'TAP TO PLAY':'PRESS SPACE TO PLAY';col=C.YEL;
   lines=MOBILE?
@@ -671,7 +693,7 @@ function card(){
  else{title='WIPED OUT';sub='SCORE '+G.score+'   BEST '+G.best;col=C.RED;
   lines=['REACHED '+(G.endless?'WAVE '+(G.level-ENEMIES.length+1):'LEVEL '+(G.level+1)),
    MOBILE?'TAP THE SCREEN TO TRY AGAIN':'PRESS R TO TRY AGAIN']}
- const h=52+lines.length*29,cw=MOBILE?1010:1132;   // phones keep the corners clear for the controls
+ const lh=MOBILE?27:29,h=52+lines.length*lh,cw=MOBILE?1010:1132;   // phones keep the corners clear for the controls
  X.save();
  X.fillStyle='rgba(16,20,13,.80)';X.beginPath();X.roundRect(cx-cw/2,cy-74,cw,h+34,16);X.fill();
  X.strokeStyle='rgba(223,166,60,.5)';X.lineWidth=2;X.beginPath();X.roundRect(cx-cw/2,cy-74,cw,h+34,16);X.stroke();
@@ -683,7 +705,7 @@ function card(){
   X.beginPath();X.ellipse(k*16,-4,16,6,k*.2,0,7);X.fill();X.restore()}
  T(title,cx,cy-186,84,C.PAPER,'center','middle',1080);
  T(sub,cx,cy-104,30,col);
- lines.forEach((s,i)=>T(s,cx,cy-42+i*29,19,C.PAPER,'center','middle',cw-60))}
+ lines.forEach((s,i)=>T(s,cx,cy-42+i*lh,19,C.PAPER,'center','middle',cw-60))}
 function drawBanner(){
  const b=G.banner;if(!b)return;
  const p=b.t/b.dur;if(p>=1){G.banner=null;return}
@@ -727,7 +749,7 @@ function draw(dt,fps){
  if(G.superOn)drawSuper();
  if(flash>0){X.fillStyle=`rgba(255,246,224,${180*flash/255})`;X.fillRect(0,0,C.W,C.H)}
  glitchPass();
- panel(10,10,C.W-20,C.H-20,8,'rgba(223,166,60,.28)')}
+ panel(10,10+VIEW.top,C.W-20,VIEW.h-20,8,'rgba(223,166,60,.28)')}
 // hologram: the scene four times, rotated 90 degrees apart, on black (render/hologram.py)
 function toggleHolo(){holoOn=!holoOn;holo.style.display=holoOn?'block':'none';cv.style.display=holoOn?'none':'block'}
 function drawHolo(){

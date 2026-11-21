@@ -100,3 +100,5 @@ html.mobile #gate{display:flex}
 @media (pointer:coarse){
  #c{border-radius:0;box-shadow:none}
 }
+/* phones in landscape: render.js (measureView) scales this frame up until it fills the whole
+ screen at its own 16:9 shape - never stretched - and crops the surplus sky and ground edge */
