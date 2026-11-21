@@ -34,18 +34,45 @@ addEventListener('keydown',e=>{
 addEventListener('keyup',e=>{const k=e.key.length===1?e.key.toLowerCase():e.key;keys[k]=false});
 addEventListener('blur',()=>{for(const k in keys)keys[k]=false});
 cv.addEventListener('pointerdown',()=>{boot();
- if(G.phase==='MENU')startRun();else if(G.phase==='WARMUP')endWarm();else if(G.phase==='WIN')startEndless()});
+ if(G.phase==='MENU')startRun();else if(G.phase==='WARMUP')endWarm();
+ else if(G.phase==='WIN')startEndless();
+ else if(G.phase==='LOSE'&&MOBILE)start()});     // phones have no R key: tap to run it back
+// ---- phones: first tap goes fullscreen and asks the OS for landscape; if the phone is
+// still upright a rotate prompt covers the game until it is turned
+function goLandscape(){
+ try{const d=document.documentElement,f=d.requestFullscreen||d.webkitRequestFullscreen;
+  if(f){const p=f.call(d);if(p&&p.catch)p.catch(()=>{})}}catch(e){}
+ try{if(screen.orientation&&screen.orientation.lock){const p=screen.orientation.lock('landscape');if(p&&p.catch)p.catch(()=>{})}}catch(e){}}
+function checkOrient(){
+ if(!MOBILE)return;
+ const o=document.getElementById('orient');if(!o)return;
+ const portrait=innerHeight>innerWidth;
+ o.style.display=portrait?'flex':'none';
+ if(portrait){for(const k in keys)keys[k]=false;touch.mx=0;touch.strum=null}}
+if(MOBILE){
+ const gate=document.getElementById('gate');
+ const enter=e=>{
+  if(e&&e.preventDefault)e.preventDefault();
+  boot();goLandscape();
+  if(gate){gate.classList.add('gone');gate.style.display='none'}
+  checkOrient()};
+ if(gate)gate.addEventListener('pointerdown',enter);
+ addEventListener('resize',checkOrient);
+ addEventListener('orientationchange',()=>setTimeout(checkOrient,120));
+ checkOrient()}
 let last=performance.now(),fps=60;
 function frame(tm){
  const dt=Math.min(.1,(tm-last)/1000);last=tm;if(dt>0)fps=.95*fps+.05/dt;
  let ev=[];const ts=timeScale(dt);
  if(src==='keyboard'){
   // held strum key keeps firing, so a chord rings like a strummed guitar instead of a tap
-  const held=Object.keys(STUMS).find(k=>keys[k]);
-  if(held&&tm>=nextStrum){emitKb(STUMS[held],.8);nextStrum=tm+C.STRUM_REPEAT*1000}
+  // a held strum key - or a held touch button - keeps firing
+  const held=Object.keys(STUMS).find(k=>keys[k])||(touch.strum||null);
+  if(held&&tm>=nextStrum){emitKb(STUMS[held]||held,.8);nextStrum=tm+C.STRUM_REPEAT*1000}
   ev=kq;kq=[]}
  else if(cam.frame)ev=rec.process(cam.frame);
  if(rec.superAsk){rec.superAsk=false;useSuper()}   // both fists held = super
+ if(MOBILE)syncTouchUi()                          // light the on-screen super button
  if(G.phase==='WARMUP'){warmStep(dt,ev);ev=[]}     // swipes here only start the run
  if(G.phase!=='WARMUP')applyMove(dt*ts);
  update(dt*ts,ev);handleFx(G.fx.splice(0));
@@ -53,5 +80,5 @@ function frame(tm){
  if(holoOn)drawHolo();
  requestAnimationFrame(frame)}
 if(document.fonts&&document.fonts.load){document.fonts.load('64px Cinzel');document.fonts.load('700 64px Cinzel');document.fonts.load('64px Bangers')}
-initCam();
+if(!MOBILE)initCam();       // phones play by touch: no webcam, no MediaPipe download
 requestAnimationFrame(frame);

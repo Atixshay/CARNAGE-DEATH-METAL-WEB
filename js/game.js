@@ -50,19 +50,19 @@ function superTick(dt){
    e.hurt=.5;e.stun=2.4;e.atk=null;e.tel=false;
    G.score+=SUPER.dmg;chain();emit('super_hit',{x:e.x,dmg:SUPER.dmg})}}
  if(G.superT>=SUPER.dur){G.superOn=false;G.superT=0;if(G.e&&G.e.hp<=0)advance()}}
-// ---- camera warm-up: a few seconds in front of the camera so you can see it read your hand
+// ---- camera check page: opens on every desktop run so you can see the hand reading first
 let warmT=0,warmSeen=0;
-function startRun(){                     // space / tap: camera runs check the hand first
- if(src==='webcam'&&cam.ready){G.phase='WARMUP';warmT=0;warmSeen=0;rec.reset();G.fx.length=0;return}
- start()}
+function startRun(){                     // space / click from the menu
+ if(MOBILE){start();return}             // phones have no camera: straight into the fight
+ G.phase='WARMUP';warmT=0;warmSeen=0;rec.reset();G.fx.length=0}
 function endWarm(){start()}
 function warmStep(dt,ev){
  if(G.phase!=='WARMUP')return;
  warmT+=dt;
  if(cam.frame&&cam.frame.left)warmSeen+=dt;
- // a swipe is you saying "yes, you can see me"; with no hand at all we start anyway so
- // nobody is stuck staring at a check screen
- if(ev.length||(warmSeen>0&&warmT>=C.WARM)||warmT>=C.WARM*2.5)endWarm()}
+ // a swipe is you saying "yes, you can see me"; with a camera and no hand in view we start
+ // anyway so nobody is stuck on the check page. Without a camera, SPACE / click begins.
+ if(ev.length||(cam.ready&&((warmSeen>0&&warmT>=C.WARM)||warmT>=C.WARM*2.5)))endWarm()}
 const baseDmg=(c,s,st)=>Math.max(1,Math.round((C.DMG[c]||8)*(s==='UP'?C.UP:1)*(1+st*C.STR)));
 function detectCombo(){const r=G.p.buf.map(x=>x[0]);
  for(const k in C.COMBOS){const pat=k.split(',');

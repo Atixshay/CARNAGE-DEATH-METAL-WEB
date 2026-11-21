@@ -2,18 +2,58 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0e1410">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>CARNAGE: DEATH METAL</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js" crossorigin="anonymous"></script>
 </head>
 <body>
 <canvas id="c" width="1280" height="720"></canvas>
 <canvas id="holo" width="720" height="720"></canvas>
 <video id="v" playsinline muted></video>
+
+<!-- phones / tablets: joystick + transparent attack buttons (desktop never shows these) -->
+<div id="touch">
+ <div id="stick"><div id="knob"></div></div>
+ <div id="right">
+  <div id="notes">
+   <button class="nb on" id="n-E" type="button">E</button>
+   <button class="nb" id="n-A" type="button">A</button>
+   <button class="nb" id="n-D" type="button">D</button>
+   <button class="nb" id="n-G" type="button">G</button>
+   <button class="nb" id="n-C" type="button">C</button>
+  </div>
+  <div id="pad">
+   <button class="tb" id="b-dash" type="button">DASH</button>
+   <button class="tb" id="b-up" type="button">▲<small>STRUM</small></button>
+   <button class="tb" id="b-down" type="button">▼<small>ATTACK</small></button>
+  </div>
+  <button class="tb" id="b-super" type="button">SUPER</button>
+ </div>
+</div>
+
+<!-- phones: the game is widescreen, so ask for landscape instead of squeezing it -->
+<div id="orient">
+ <div class="turn">↻</div>
+ <h2>ROTATE YOUR PHONE</h2>
+ <p>CARNAGE plays in landscape.<br>Turn the phone sideways to fight.</p>
+</div>
+
+<!-- phones: first tap enters fullscreen and asks the OS to lock landscape -->
+<div id="gate">
+ <h1>CARNAGE<span>DEATH METAL</span></h1>
+ <div class="turn">↻</div>
+ <p class="land">TAP TO PLAY</p>
+ <p class="port">TURN YOUR PHONE SIDEWAYS<br>THEN TAP TO PLAY</p>
+ <p class="tiny">landscape · fullscreen · touch controls</p>
+</div>
+
 <!-- order matters: later files use what earlier files define -->
 <script src="js/config.js"></script>
 <script src="js/enemies.js"></script>

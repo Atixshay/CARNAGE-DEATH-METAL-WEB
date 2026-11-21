@@ -302,8 +302,10 @@ function bladePath(){
 function drawPlayer(){
  const p=G.p,t=G.elapsed||now(),x=p.x,y=C.PY;
  const move=clamp(Math.abs(p.tx-p.x)/90,0,1);
- const stepA=Math.sin(t*10)*(.4+.6*move);
- const bob=Math.sin(t*2.4)*1.2+Math.abs(stepA)*1.0;
+ // walk cycle: the legs alternate while he moves and settle when he stands still
+ const cycle=t*(6.5+7.5*move),amp=.2+.8*move,stepA=Math.sin(cycle)*amp;
+ const facing=(p.face||1)<0?-1:1;               // he turns to face the way he is going
+ const bob=Math.sin(t*2.4)*1.2+Math.abs(stepA)*1.8;
  const lean=clamp((p.tx-p.x)/80,-1,1)*.09+clamp(p.face||1,-1,1)*.02;
  const sw=p.swing>0?Math.min(1,1-p.swing/C.SWING):1;
  const swingK=p.swing>0?Math.sin(Math.PI*Math.min(1,sw*1.08)):0;
@@ -314,7 +316,7 @@ function drawPlayer(){
  sh.addColorStop(0,'rgba(8,12,6,.62)');sh.addColorStop(1,'rgba(8,12,6,0)');
  X.fillStyle=sh;X.beginPath();X.arc(0,0,54,0,7);X.fill();X.restore();
  X.save();
- X.translate(x,y+bob);X.rotate(lean);X.scale(S,S);
+ X.translate(x,y+bob);X.rotate(lean);X.scale(S*facing,S);
  X.globalAlpha=p.iframe>0&&!p.dashT&&Math.floor(t*22)%2?.55:1;
  // warm pool of light so the silhouette reads against the grass
  X.save();X.scale(1,.3);
@@ -323,15 +325,20 @@ function drawPlayer(){
  X.fillStyle=lg;X.beginPath();X.arc(0,0,124,0,7);X.fill();X.restore();
  const BODY='#12170f',RIM='rgba(255,222,164,.5)';
  X.lineCap='round';X.lineJoin='round';
- // legs: wide stance, thick tapered limbs, blocky feet
- const leg=(hx,ex,ey,ph,front)=>{
-  X.strokeStyle=BODY;X.lineWidth=14;
-  X.beginPath();X.moveTo(hx,-66);X.quadraticCurveTo(hx+(ex-hx)*.55+ph*3,-34,ex+ph*4,ey+6);X.stroke();
-  X.save();X.translate(ex+ph*4,ey);
-  X.fillStyle=BODY;X.beginPath();X.roundRect(-9,-6,21,12,4);X.fill();
+ // legs: wide stance, thick tapered limbs, blocky feet, stepping in opposite phase
+ const BACK='#222b1f';                       // the far leg is a touch lighter so the stride reads
+ const leg=(hx,ph,ink)=>{
+  const s=Math.sin(cycle+ph),lift=Math.max(0,s);
+  const stance=hx<0?-12:12;                  // feet stay apart even when he stands still
+  const fx=hx+stance+s*19*amp,fy=-4-lift*11*amp;  // the foot swings out and lifts off the grass
+  X.strokeStyle=ink;X.lineWidth=14;X.lineCap='round';
+  X.beginPath();X.moveTo(hx,-66);
+  X.quadraticCurveTo(hx+s*12*amp,-33,fx,fy+6);X.stroke();
+  X.save();X.translate(fx,fy);
+  X.fillStyle=ink;X.beginPath();X.roundRect(-9,-6,21,12,4);X.fill();
   X.strokeStyle='rgba(255,222,164,.25)';X.lineWidth=1.8;
   X.beginPath();X.moveTo(-7,-4);X.lineTo(9,-4);X.stroke();X.restore()};
- leg(-3,-30,-4,stepA,false);leg(0,25,-2,-stepA,true);
+ leg(-3,0,BACK);leg(2,Math.PI,BODY);
  // torso: narrow waist, sloping shoulders, one ink mass
  X.fillStyle=BODY;
  X.beginPath();
@@ -389,9 +396,10 @@ function drawPlayer(){
   for(let i=0;i<Math.max(2,p.guard);i++){
    const a=t*1.4+i*2.1;
    X.save();X.translate(Math.cos(a)*44,-64+Math.sin(a)*32);X.rotate(a);
-   X.fillStyle=C.BLUE;X.globalAlpha=.85;X.beginPath();X.ellipse(0,0,7.5,3.4,0,0,7);X.fill();X.restore()}
-  X.globalAlpha=1;T('GUARD '+p.guard,0,-186,17,C.BLUE)}
- X.restore()}
+   X.fillStyle=C.BLUE;X.globalAlpha=.85;X.beginPath();X.ellipse(0,0,7.5,3.4,0,0,7);X.fill();X.restore()}}
+ X.restore();
+ // the label stays upright even when the fighter is facing left
+ if(guard)T('GUARD '+p.guard,x,y+bob-186*S,17,C.BLUE)}
 
 function drawShots(){
  for(const s of G.shots){
@@ -470,6 +478,7 @@ function drawDrops(){
   X.globalAlpha=1;T(pw.tag,0,1,29,pw.col);X.restore()}}
 // selfie preview: mirrored video plus the hand the camera is tracking (x is already mirrored)
 function camDraw(x,y,w,h,a=1){
+ if(!V||!V.videoWidth)return;                 // camera off: nothing to paste in
  X.save();X.translate(x+w,y);X.scale(-1,1);X.drawImage(V,0,0,w,h);X.restore();
  if(!cam.frame)return;
  const bones=[[0,5],[5,9],[9,13],[13,17],[0,17],[0,1],[1,2],[2,3],[3,4]];
@@ -492,32 +501,43 @@ function drawCam(){
  T(n?n+'  '+ch:'HOLD UP 1-5 FINGERS',x+w/2,y-16,16,n?C.PAPER:'#b6b3a0','center','bottom',w-16);
  T('SWIPE UP OR DOWN TO ATTACK',x+w/2,y-2,13,'rgba(244,237,218,.55)','center','bottom',w-16);
  panel(x-4,y-4,w+8,h+8,4,'rgba(20,27,18,.7)')}
-// camera warm-up: your hand, the fingers it counts, the chord that makes, and how to start
+// camera check page (desktop): the webcam, the hand it reads, the chord that makes and how
+// to start. It opens on every run launched from the menu, camera or keyboard.
 function warmScene(){
- const cx=C.W/2,w=480,h=Math.round(w*C.CAM_H/C.CAM_W),x=cx-w/2,y=104;
+ const cx=C.W/2,pw=1000,ph=598,px=cx-pw/2,py=14;
+ const w=380,h=Math.round(w*C.CAM_H/C.CAM_W),x=cx-w/2,y=100;
  const has=!!(cam.frame&&cam.frame.left),n=rec.count,ch=chordFor(n);
- starburst(cx,44,78,C.GREEN,12);
- T('CAMERA CHECK',cx,44,42,C.PAPER);
- T('MAKE SURE IT SEES YOUR HAND BEFORE THE FIGHT',cx,82,17,'#c9c1a6');
+ X.save();X.fillStyle='rgba(16,20,13,.88)';X.beginPath();X.roundRect(px,py,pw,ph,18);X.fill();
+ X.strokeStyle='rgba(223,166,60,.42)';X.lineWidth=2;X.stroke();X.restore();
+ starburst(cx,52,62,C.GREEN,12);
+ T('CAMERA CHECK',cx,46,38,C.PAPER);
+ T('WHAT THE CAMERA SEES, BEFORE THE FIGHT',cx,80,15,'#c9c1a6');
  camDraw(x,y,w,h,1);
- if(!has){X.save();X.globalAlpha=.35;X.fillStyle=C.INK;X.fillRect(x,y,w,h);X.restore()}
+ if(!has){X.save();X.globalAlpha=.4;X.fillStyle=C.INK;X.fillRect(x,y,w,h);X.restore()}
+ if(!cam.ready){
+  T('NO CAMERA',cx,y+h/2-14,30,'#c9c1a6');
+  T('F2 TO TRY AGAIN  ·  KEYBOARD PLAYS RIGHT NOW',cx,y+h/2+20,14,'#8f8b76','center','middle',w-30)}
  panel(x-6,y-6,w+12,h+12,4,'rgba(223,166,60,.55)');
- const yd=y+h+44;
- if(has){
-  T(n+' FINGER'+(n===1?'':'S'),cx-100,yd,36,C.PAPER,'right','middle');
-  T('= '+ch,cx-64,yd,54,CHORD_COL[ch]||C.YEL,'left','middle')}
- else{
-  T('NO HAND IN VIEW',cx,yd,36,'#c9c1a6');
-  T('HOLD UP 1-5 FINGERS   1 E  ·  2 A  ·  3 D  ·  4 G  ·  5 C',cx,yd+34,19,C.PAPER,'center','middle',w+180)}
- // how to play, said on the screen everybody actually looks at before a run
- const q=yd+58;
- T('SWIPE UP OR DOWN TO ATTACK   ·   SPACE TO BEGIN',cx,q,22,C.YEL,'center','middle',w+200);
- T('MOVE: SLIDE YOUR LEFT HAND LEFT / RIGHT  (OR A / D)',cx,q+30,17,C.PAPER,'center','middle',w+200);
- T('CLOSE IN: THE GLAIVE ONLY REACHES A NEARBY ENEMY',cx,q+52,15,'#c9c1a6','center','middle',w+200);
- const bw=380,bx=cx-bw/2,by=q+78,p=warmSeen>0?clamp(warmT/C.WARM,0,1):0;
- X.fillStyle='rgba(16,20,13,.8)';X.fillRect(bx,by,bw,8);
+ // camera status right under the preview
+ const sy=y+h+26;
+ if(!cam.ready) T('CAMERA '+(cam.err?cam.err.toUpperCase():'OFF')+'   ·   KEYBOARD STILL PLAYS',cx,sy,17,C.RED,'center','middle',w+280);
+ else if(has) T(n+' FINGER'+(n===1?'':'S')+'   =   '+ch,cx,sy,26,C.PAPER,'center','middle',w+280);
+ else T('HOLD UP 1-5 FINGERS ON YOUR LEFT HAND',cx,sy,18,C.YEL,'center','middle',w+300);
+ // the whole control sheet, in three lines
+ const gy=sy+40;
+ T('1 E  ·  2 A  ·  3 D  ·  4 G  ·  5 C      SWIPE UP OR DOWN TO SWING',cx,gy,17,C.PAPER,'center','middle',w+420);
+ T('MOVE: SLIDE YOUR LEFT HAND  (OR A / D)      SUPER: CLENCH BOTH FISTS',cx,gy+26,15,'#c9c1a6','center','middle',w+420);
+ T('CLOSE IN: THE GLAIVE ONLY REACHES A NEARBY ENEMY',cx,gy+50,14,'#a9a491','center','middle',w+420);
+ // the countdown only runs while the camera can actually see your hand
+ const counting=cam.ready&&warmSeen>0&&warmT<C.WARM;
+ const bw=340,bx=cx-bw/2,by=gy+82,p=counting?clamp(warmT/C.WARM,0,1):0;
+ X.fillStyle='rgba(8,11,8,.75)';X.fillRect(bx,by,bw,8);
  X.fillStyle=p>=1?C.GREEN:C.YEL;X.fillRect(bx,by,Math.max(2,bw*p),8);
- T(p>0?'STARTING IN '+Math.max(0,C.WARM-warmT).toFixed(1)+'S':'WAITING FOR YOUR HAND',cx,by+30,17,'#c9c1a6')}
+ T(counting?'STARTING IN '+Math.max(0,C.WARM-warmT).toFixed(1)+'S'
+   :cam.ready?'SPACE OR CLICK TO BEGIN  ·  WAITING FOR YOUR HAND':'SPACE OR CLICK TO BEGIN',
+   cx,by+28,17,'#c9c1a6','center','middle',w+320);
+ T('SPACE BEGIN   ·   F2 CAMERA / KEYBOARD   ·   X SWAP HANDS   ·   ESC MENU',
+   cx,by+56,14,'rgba(244,237,218,.5)','center','middle',w+460)}
 function hud(fps){
  const W=C.W,p=G.p,e=G.e,cx=W/2;
  bar(40,54,430,34,p.hp/C.PHP,C.GREEN,'YOU  '+Math.ceil(p.hp));
@@ -543,7 +563,7 @@ function hud(fps){
   X.beginPath();X.roundRect(cx-236,232,472,74,16);X.fill();X.restore();
   X.save();X.globalAlpha=.7+.3*Math.sin((G.elapsed||0)*8);
   T('SUPER READY',cx,254,30,C.RED);
-  T('PRESS Q   ·   OR CLENCH BOTH FISTS',cx,286,16,C.PAPER);X.restore()}
+  T(MOBILE?'TAP THE SUPER BUTTON':'PRESS Q   ·   OR CLENCH BOTH FISTS',cx,286,16,C.PAPER);X.restore()}
  // super meter: fills with hits, shouts when it is ready
  const sy=C.H-186,full=G.super>=1;
  T('SUPER',40,sy,17,full?C.RED:'#a8a48e','left','middle');
@@ -551,14 +571,16 @@ function hud(fps){
  X.fillStyle=full?(beatPulse()>.5?C.RED:C.YEL):C.ORANGE;
  X.beginPath();X.roundRect(115,sy-5,Math.max(0,230*G.super),10,5);X.fill();
  if(full){X.save();X.globalAlpha=.55+.45*Math.sin((G.elapsed||0)*8);
-  T('READY  ·  Q',360,sy,19,C.RED,'left','middle');X.restore()}
+  T(MOBILE?'READY  ·  SUPER':'READY  ·  Q',360,sy,19,C.RED,'left','middle');X.restore()}
  else T(Math.round(G.super*100)+'%',360,sy,15,'#8f8b76','left','middle');
- T('SCORE '+G.score,40,C.H-134,29,C.PAPER,'left','top');
- T('DODGES '+G.dodges,40,C.H-104,19,C.BLUE,'left','top');
- T(`${fps.toFixed(1)} FPS   input: ${src}   A/D move   SHIFT dash   ${p.dashCD>0?'dash '+p.dashCD.toFixed(1)+'s':'dash ready'}`,
-   28,C.H-74,16,'#b6b3a0','left','top',620);
- T('1-5 chord   UP/DOWN or J/K strum (hold)   F1 debug   F2 input   H holo   V voice   P pause   M mute   R restart',
-   28,C.H-46,16,'#b6b3a0','left','top',960);
+ // the bottom-left corner belongs to the joystick on a phone, so the score moves up
+ T('SCORE '+G.score,40,MOBILE?150:C.H-134,MOBILE?26:29,C.PAPER,'left','top');
+ T('DODGES '+G.dodges,40,MOBILE?178:C.H-104,MOBILE?17:19,C.BLUE,'left','top');
+ if(!MOBILE){                                 // on a phone the bottom corners are controls
+  T(`${fps.toFixed(1)} FPS   input: ${src}   A/D move   SHIFT dash   ${p.dashCD>0?'dash '+p.dashCD.toFixed(1)+'s':'dash ready'}`,
+    28,C.H-74,16,'#b6b3a0','left','top',620);
+  T('1-5 chord   UP/DOWN or J/K strum (hold)   F1 debug   F2 input   H holo   V voice   P pause   M mute   R restart',
+    28,C.H-46,16,'#b6b3a0','left','top',960)}
  if(dbg){
   const L=[];const f=cam.frame;
   if(src==='webcam'&&f){L.push('left hand:  '+(f.left?'yes':'no'),'right hand: '+(f.right?'yes':'no'),'chord read: '+describe(f.left),
@@ -621,25 +643,38 @@ function drawSuper(){
 function card(){
  const cx=C.W/2,cy=C.H/2,ph=G.phase;let title,sub,col,lines;
  if(ph==='MENU'){
-  title=C.TITLE;sub='PRESS SPACE TO PLAY';col=C.YEL;
-  lines=['CAMERA: HOLD UP 1-5 FINGERS ON YOUR LEFT HAND FOR E A D G C',
-   'SWIPE EITHER HAND UP OR DOWN TO ATTACK. THE LEFT HAND STEERS.',
-   'KEYBOARD: A/D MOVE · SHIFT DASH · 1-5 CHORD · UP/DOWN OR J/K STRUM (HOLD)',
-   'EVERY CHORD SWINGS THE GLAIVE. THE WEAK CHORD DOES 2X AND BREAKS SHIELDS.',
-   'HITS FILL THE SUPER METER: WHEN IT IS FULL PRESS Q - OR CLENCH BOTH FISTS.',
-   'CLOSE IN TO HIT - THE GLAIVE ONLY REACHES A NEARBY ENEMY.',
-   'DODGE THORNS, SUNBEAMS AND SLAMS. GRAB THE FALLING CHARMS.',
-   'LEVELS 1-5 END IN CARNAGE. THEN ENDLESS WAVES UNTIL YOU DROP.',
-   cam.ready?'CAMERA READY - keep both hands in view':cam.err?'CAMERA: '+cam.err+' - keyboard: 1-5 chords, UP/DOWN strum':'CAMERA LOADING...',
-   'BEST SCORE '+G.best+'     F2 keyboard mode     P pause     M mute']}
+  title=C.TITLE;sub=MOBILE?'TAP TO PLAY':'PRESS SPACE TO PLAY';col=C.YEL;
+  lines=MOBILE?
+   ['JOYSTICK BOTTOM LEFT: DRAG LEFT / RIGHT TO MOVE · DASH ROUND BUTTON TO DASH',
+    'THE DOWN AND UP BUTTONS STRUM THE GLAIVE - HOLD ONE TO KEEP SWINGING.',
+    'THE NOTE ROW PICKS YOUR CHORD: E A D G C',
+    'EVERY CHORD SWINGS THE GLAIVE. THE WEAK CHORD DOES 2X AND BREAKS SHIELDS.',
+    'HITS FILL THE SUPER METER: WHEN IT LIGHTS UP TAP SUPER.',
+    'CLOSE IN TO HIT - THE GLAIVE ONLY REACHES A NEARBY ENEMY.',
+    'DODGE THORNS, SUNBEAMS AND SLAMS. GRAB THE FALLING CHARMS.',
+    'LEVELS 1-5 END IN CARNAGE. THEN ENDLESS WAVES UNTIL YOU DROP.',
+    'TOUCH CONTROLS - THE CAMERA GESTURES ARE A DESKTOP THING.',
+    'BEST SCORE '+G.best+'     HOLD THE PHONE IN LANDSCAPE']
+   :['CAMERA: HOLD UP 1-5 FINGERS ON YOUR LEFT HAND FOR E A D G C',
+    'SWIPE EITHER HAND UP OR DOWN TO ATTACK. THE LEFT HAND STEERS.',
+    'KEYBOARD: A/D MOVE · SHIFT DASH · 1-5 CHORD · UP/DOWN OR J/K STRUM (HOLD)',
+    'EVERY CHORD SWINGS THE GLAIVE. THE WEAK CHORD DOES 2X AND BREAKS SHIELDS.',
+    'HITS FILL THE SUPER METER: WHEN IT IS FULL PRESS Q - OR CLENCH BOTH FISTS.',
+    'CLOSE IN TO HIT - THE GLAIVE ONLY REACHES A NEARBY ENEMY.',
+    'DODGE THORNS, SUNBEAMS AND SLAMS. GRAB THE FALLING CHARMS.',
+    'LEVELS 1-5 END IN CARNAGE. THEN ENDLESS WAVES UNTIL YOU DROP.',
+    cam.ready?'CAMERA READY - space or click opens the camera check':cam.err?'CAMERA: '+cam.err+' - keyboard plays fine, F2 retries':'CAMERA LOADING...',
+    'BEST SCORE '+G.best+'     F2 keyboard mode     P pause     M mute']}
  else if(ph==='WIN'){title='YOU SHRED!';sub='SCORE '+G.score+'   BEST '+G.best;col=C.GREEN;
-  lines=['SPACE = ENDLESS MODE   (waves 1+ scale forever)','R = RESTART THE CAMPAIGN']}
+  lines=MOBILE?['TAP THE SCREEN = ENDLESS MODE   (waves 1+ scale forever)','TAP AGAIN ANY TIME TO RESTART THE CAMPAIGN']
+   :['SPACE = ENDLESS MODE   (waves 1+ scale forever)','R = RESTART THE CAMPAIGN']}
  else{title='WIPED OUT';sub='SCORE '+G.score+'   BEST '+G.best;col=C.RED;
-  lines=['REACHED '+(G.endless?'WAVE '+(G.level-ENEMIES.length+1):'LEVEL '+(G.level+1)),'PRESS R TO TRY AGAIN']}
- const h=52+lines.length*29;
+  lines=['REACHED '+(G.endless?'WAVE '+(G.level-ENEMIES.length+1):'LEVEL '+(G.level+1)),
+   MOBILE?'TAP THE SCREEN TO TRY AGAIN':'PRESS R TO TRY AGAIN']}
+ const h=52+lines.length*29,cw=MOBILE?1010:1132;   // phones keep the corners clear for the controls
  X.save();
- X.fillStyle='rgba(16,20,13,.80)';X.beginPath();X.roundRect(cx-566,cy-74,1132,h+34,16);X.fill();
- X.strokeStyle='rgba(223,166,60,.5)';X.lineWidth=2;X.beginPath();X.roundRect(cx-566,cy-74,1132,h+34,16);X.stroke();
+ X.fillStyle='rgba(16,20,13,.80)';X.beginPath();X.roundRect(cx-cw/2,cy-74,cw,h+34,16);X.fill();
+ X.strokeStyle='rgba(223,166,60,.5)';X.lineWidth=2;X.beginPath();X.roundRect(cx-cw/2,cy-74,cw,h+34,16);X.stroke();
  X.restore();
  // leaf crest above the title
  starburst(cx,cy-186,120,col,14);
@@ -648,7 +683,7 @@ function card(){
   X.beginPath();X.ellipse(k*16,-4,16,6,k*.2,0,7);X.fill();X.restore()}
  T(title,cx,cy-186,84,C.PAPER,'center','middle',1080);
  T(sub,cx,cy-104,30,col);
- lines.forEach((s,i)=>T(s,cx,cy-42+i*29,19,C.PAPER,'center','middle',1070))}
+ lines.forEach((s,i)=>T(s,cx,cy-42+i*29,19,C.PAPER,'center','middle',cw-60))}
 function drawBanner(){
  const b=G.banner;if(!b)return;
  const p=b.t/b.dur;if(p>=1){G.banner=null;return}

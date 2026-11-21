@@ -14,6 +14,23 @@ Serve the folder (the camera needs HTTPS or localhost), then open it in desktop 
 
 Or push the folder to GitHub Pages. Press SPACE or click to start.
 
+## Phones and tablets
+
+The same page plays on a phone: there is no separate build and no second URL.
+
+- On a touch screen the first tap opens a **PLAY** gate that requests fullscreen and asks the
+  OS to lock the screen to landscape. If the phone is still upright a **ROTATE YOUR PHONE**
+  prompt covers the game until it is turned; rotating back hides it again.
+- **No camera on phones.** Webcam hand tracking and the MediaPipe download are desktop only,
+  so a phone never asks for camera permission. Desktops keep the full gesture controls.
+- On-screen controls appear when a fight starts (the menu cards stay clear):
+  - **Joystick** bottom left: drag left / right to walk, the ring is the thumb pad.
+  - **DASH** round button: the same burst dash as `SHIFT`.
+  - **▼ ATTACK / ▲ STRUM**: hold to keep strumming at the song tempo.
+  - **E A D G C** note row: picks the chord, exactly like the `1`-`5` keys.
+  - **SUPER**: lights up and pulses when the meter is full; tap it to fire the cutscene.
+- Touch the screen on the win / lose cards to go into endless mode or start again.
+
 ## Files
     index.html       page shell, loads everything below in order
     css/style.css    page layout and the woodland page frame
@@ -79,9 +96,11 @@ super meter is full.** Everything below is the same thing in more detail.
 - Swipe speed is measured in hand-heights per second and the trigger calibrates to your own
   swing, so a fast flick and a slow heavy swing both work.
 - The small preview in the corner shows the finger count and the chord the camera is reading.
-- **Starting a run on the camera opens a camera check first:** your hand on the preview, the
-  finger count, the chord it reads, a swipe prompt, the movement line and a countdown.
-  Swipe (or press `SPACE`) to begin at once, or let the countdown finish.
+- **Starting a run on desktop opens a camera check page first**, camera or keyboard alike:
+  the preview, the finger count and chord it reads, the whole control sheet, the input
+  status and a countdown. Swipe (or press `SPACE`) to begin at once, or let the countdown
+  finish. With no camera it says `NO CAMERA`, offers `F2` to retry, and `SPACE` starts
+  keyboard play. `R` restarts skip the page.
 - `SHIFT` still dashes while you are in camera mode, and `F2` switches between keyboard and
   camera at any time.
 

@@ -92,6 +92,7 @@ try{
   G.e.timer=99;update(.02,[]);
   for(let j=0;j<14;j++)update(.05,[]);
   G.p.guard=2;G.p.powers={slow:5};spawnDrop('heal',600,400);draw(.016,60)}
+ cam.ready=true;cam.frame=null;G.phase='MENU';startRun();draw(.016,60);   // camera check page
  G.phase='MENU';draw(.016,60);G.phase='WIN';draw(.016,60);G.phase='LOSE';draw(.016,60);
  start();update(.016,[hit('E',1)]);handleFx(G.fx.splice(0));draw(.2,60);
  G.e.hp=1;update(.016,[hit('E',1)]);handleFx(G.fx.splice(0));draw(.1,60);
@@ -181,7 +182,9 @@ rec.superAsk=false;G.super=0;
 
 // ---- camera warm-up: a camera run checks the hand before the fight
 setSrc('keyboard');cam.ready=true;cam.frame=null;G.phase='MENU';startRun();
-check('a keyboard run starts straight away',G.phase==='PLAYING');
+check('a desktop run opens the camera check page first',G.phase==='WARMUP');
+warmStep(.05,[{chord:'D',strum:'DOWN',strength:.5,t:1}]);
+check('a swipe begins the fight from the camera check page',G.phase==='PLAYING');
 setSrc('webcam');G.phase='MENU';cam.frame=null;startRun();
 check('a camera run opens the hand check first',G.phase==='WARMUP');
 warmStep(.2,[]);check('the hand check waits while no hand is in view',G.phase==='WARMUP');

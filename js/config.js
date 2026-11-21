@@ -21,6 +21,8 @@ const C={W:1280,H:720,PREVIEW:.42,CAM_W:640,CAM_H:480,WARM:3.2,
  GREEN:'#82a75a',PURPLE:'#7d6b9e',ORANGE:'#c07a45',WHITE:'#fffdf5',
  WAKE:'jarvis',TITLE:'CARNAGE: DEATH METAL'};
 const CHORDS=Object.values(C.MAP);
+// phones and tablets (coarse pointer): touch controls, no camera gestures
+const MOBILE=(()=>{try{return !!(window.matchMedia&&window.matchMedia('(pointer:coarse)').matches)}catch(e){return false}})();
 const ri=(a,b)=>Math.floor(Math.random()*(b-a+1))+a, rr=(a,b)=>a+Math.random()*(b-a);
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const now=()=>performance.now()/1000;
