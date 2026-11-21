@@ -1,0 +1,10 @@
+html,body{margin:0;height:100%;background:#0e1410;overflow:hidden}
+body{display:flex;align-items:center;justify-content:center;
+ background:radial-gradient(circle at 50% 30%,#27351f 0%,#151d13 45%,#080b07 100%)}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;opacity:.5;
+ background:radial-gradient(circle at 50% 42%,rgba(0,0,0,0) 45%,rgba(0,0,0,.55) 100%)}
+#c{width:min(100vw,calc(100vh*16/9));aspect-ratio:16/9;display:block;cursor:pointer;
+ border-radius:8px;box-shadow:0 18px 60px rgba(0,0,0,.65),0 0 0 1px rgba(223,166,60,.22)}
+#holo{position:fixed;inset:0;margin:auto;width:min(100vw,100vh);height:min(100vw,100vh);background:#000;display:none;
+ box-shadow:0 0 60px rgba(0,0,0,.7)}
+#v{display:none}
