@@ -14,6 +14,10 @@ Serve the folder (the camera needs HTTPS or localhost), then open it in desktop 
 
 Or push the folder to GitHub Pages. Press SPACE or click to start.
 
+On desktop the page asks only for the camera; once hand tracking is running it goes fullscreen
+(no microphone prompt is ever shown). Browsers only grant fullscreen during an input, so if
+the request is refused it is repeated on your next click or key press.
+
 ## Phones and tablets
 
 The same page plays on a phone: there is no separate build and no second URL.
@@ -21,6 +25,9 @@ The same page plays on a phone: there is no separate build and no second URL.
 - On a touch screen the first tap opens a **PLAY** gate that requests fullscreen and asks the
   OS to lock the screen to landscape. If the phone is still upright a **ROTATE YOUR PHONE**
   prompt covers the game until it is turned; rotating back hides it again.
+- **Landscape means fullscreen.** Turning the phone sideways fills the screen on its own, and
+  the same request is repeated on the next tap until the phone accepts it — no need to reload
+  or hunt for a fullscreen button.
 - **No camera on phones.** Webcam hand tracking and the MediaPipe download are desktop only,
   so a phone never asks for camera permission. Desktops keep the full gesture controls.
 - **The play area fills the phone screen.** The frame keeps its 16:9 shape and is scaled up

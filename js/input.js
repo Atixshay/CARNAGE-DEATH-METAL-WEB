@@ -27,6 +27,7 @@ async function initCam(){
   hands.setOptions({maxNumHands:2,modelComplexity:0,minDetectionConfidence:.6,minTrackingConfidence:.5});
   hands.onResults(onHands);await hands.initialize();
   cam.ready=true;src='webcam';rec.reset();
+  try{goFull()}catch(e){}                    // camera allowed: fill the screen, no mic asked
   (async function loop(){if(V.readyState>=2)try{await hands.send({image:V})}catch(e){}requestAnimationFrame(loop)})();
  }catch(e){cam.err=(e&&e.name==='NotAllowedError')?'permission denied':(e.message||'unavailable');src='keyboard'}
  cam.loading=false}

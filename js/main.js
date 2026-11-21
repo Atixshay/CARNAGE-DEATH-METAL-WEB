@@ -37,18 +37,32 @@ cv.addEventListener('pointerdown',()=>{boot();
  if(G.phase==='MENU')startRun();else if(G.phase==='WARMUP')endWarm();
  else if(G.phase==='WIN')startEndless();
  else if(G.phase==='LOSE'&&MOBILE)start()});     // phones have no R key: tap to run it back
-// ---- phones: first tap goes fullscreen and asks the OS for landscape; if the phone is
-// still upright a rotate prompt covers the game until it is turned
-function goLandscape(){
+// ---- fullscreen: a browser only hands it out during a tap or a key press, so a request
+// that is refused is remembered and retried on the next input instead of being dropped
+let fullWant=false;
+function isFull(){return !!(document.fullscreenElement||document.webkitFullscreenElement)}
+function goFull(){
  try{const d=document.documentElement,f=d.requestFullscreen||d.webkitRequestFullscreen;
-  if(f){const p=f.call(d);if(p&&p.catch)p.catch(()=>{})}}catch(e){}
+  if(!f)return;
+  const p=f.call(d);
+  if(p&&p.then)p.then(()=>{fullWant=!isFull()},()=>{fullWant=true});
+  else fullWant=!isFull()
+ }catch(e){fullWant=true}}
+addEventListener('pointerdown',()=>{if(fullWant)goFull()},true);
+addEventListener('keydown',()=>{if(fullWant)goFull()},true);
+// ---- phones: first tap goes fullscreen and asks the OS for landscape; turned sideways the
+// page fills the screen on its own. While the phone is still upright a rotate prompt covers
+// the game until it is turned
+function goLandscape(){
+ goFull();
  try{if(screen.orientation&&screen.orientation.lock){const p=screen.orientation.lock('landscape');if(p&&p.catch)p.catch(()=>{})}}catch(e){}}
 function checkOrient(){
  if(!MOBILE)return;
  const o=document.getElementById('orient');if(!o)return;
  const portrait=innerHeight>innerWidth;
  o.style.display=portrait?'flex':'none';
- if(portrait){for(const k in keys)keys[k]=false;touch.mx=0;touch.strum=null}}
+ if(portrait){for(const k in keys)keys[k]=false;touch.mx=0;touch.strum=null}
+ else if(!isFull())goLandscape()}
 if(MOBILE){
  const gate=document.getElementById('gate');
  const enter=e=>{
